@@ -1,0 +1,84 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Data.SqlClient;
+using System.Data;
+using System.Windows.Forms;
+
+namespace Customers
+{
+    class clsDB
+    {
+        // "Server= localhost; Database= employeedetails; Integrated Security=SSPI;"
+        SqlConnection myConn;
+        private void getConnection()
+        {
+            String connstring = "server=localhost;Trusted_Connection=yes;database=Customers;connection timeout=30";
+            myConn = new SqlConnection(connstring);
+        }
+
+        // method to get data with dataset
+        public DataSet getDataSet(String sql)
+        {
+            getConnection();
+            SqlDataAdapter adapter = new SqlDataAdapter();
+            DataSet resultSet = new DataSet();
+            SqlCommand sqlcmd = new SqlCommand(sql, myConn);
+            adapter.SelectCommand = sqlcmd;
+            myConn.Open();
+            try
+            {
+                adapter.Fill(resultSet);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "SQL Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            myConn.Close();
+            return resultSet;
+        }
+
+        // method to get data with datatable
+        public DataTable getDataTable(String sql)
+        {
+            getConnection();
+            DataTable resultSet = new DataTable();
+            SqlCommand sqlcmd = new SqlCommand(sql, myConn);
+            myConn.Open();
+            try
+            {
+                using (SqlDataAdapter sda = new SqlDataAdapter(sqlcmd))
+                {
+                    sda.Fill(resultSet);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "SQL Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            myConn.Close();
+            return resultSet;
+        }
+
+        // method to add data
+        public void setData(string sqlcmd)
+        {
+            getConnection();
+            myConn.Open();
+            string sqlcommand = sqlcmd;
+            SqlCommand cmd = new SqlCommand(sqlcommand, myConn);
+
+            try
+            {
+                cmd.ExecuteNonQuery();
+                myConn.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "SQL Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+}
