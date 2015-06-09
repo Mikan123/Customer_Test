@@ -1,0 +1,85 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Text.RegularExpressions;
+
+namespace Customers
+{
+    public partial class frmAddEditCust : Form
+    {
+        clsDB clsDB = new clsDB();
+        public frmAddEditCust()
+        {
+            InitializeComponent();
+        }
+
+        private void cmdClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private bool Validate()
+        {
+            if (string.IsNullOrEmpty(txtCustomer.Text.Trim()))
+                {
+                    MessageBox.Show("Customer Name required!", "Required", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    txtCustomer.Focus();
+                    return false;
+                }
+
+            if (!Regex.IsMatch(txtLat.Text.Trim(), "^\\£?[+-]?[\\d,]*\\.?\\d{0,2}$"))
+                {
+                    MessageBox.Show("Only Numeric values allowed!", "Numeric Values Only", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    txtLat.Focus();
+                   return false;
+                }
+
+            if (!Regex.IsMatch(txtLong.Text.Trim(), "^\\£?[+-]?[\\d,]*\\.?\\d{0,2}$"))
+                {
+                    MessageBox.Show("Only Numeric values allowed!", "Numeric Values Only",
+                        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    txtLong.Focus();
+                    return false;
+                }
+            return true;
+        }
+
+        private void cmdAddCust_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (Validate())
+                {
+                    string Lat = "0.00";
+                    string Long = "0.00";
+
+                    if (!string.IsNullOrEmpty(txtLat.Text.Trim())){
+                        Lat = txtLat.Text.Replace(",",".").Trim();
+                    }
+
+                    if (!string.IsNullOrEmpty(txtLong.Text.Trim())){
+                        Long = txtLong.Text.Replace(",", ".").Trim();
+                    }
+
+                    string query = "INSERT INTO Customers (Customer,Latitude,Longitude) " +
+                    "VALUES ('" + txtCustomer.Text.Trim() + "', " + Lat + ", " + Long + ");";
+                    clsDB.setData(query);
+
+                    MessageBox.Show("New Customer added.", "New Customer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+}
