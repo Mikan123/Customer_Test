@@ -1,0 +1,242 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Customers
+{
+    public partial class frmMain : Form
+    {
+        clsDB clsDB = new clsDB();
+        public int _custID = 0;
+        public int _custContactID = 0;
+        public int _selectedID = 0;
+
+        public frmMain()
+        {
+            InitializeComponent();
+            LoadData();
+        }
+
+        public void LoadData()
+        {
+            string query = "SELECT * FROM Customers ORDER BY Customer";
+            try
+            {
+                cboCustomer.DataSource = clsDB.getDataSet(query).Tables[0];
+                cboCustomer.ValueMember = "ID";
+                cboCustomer.DisplayMember = "Customer";
+
+                lstCustContacts.GridLines = true;
+                lstCustContacts.View = View.Details;
+                lstCustContacts.Scrollable = true;
+
+                //Add Column Header
+                lstCustContacts.Columns.Clear();
+                lstCustContacts.Columns.Add("ID", 30);
+                lstCustContacts.Columns.Add("Name", 200);
+
+                cboCustomer.SelectedIndex=_selectedID;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message,"Application Error",MessageBoxButtons.OK,MessageBoxIcon.Error);
+            }
+        }
+
+        private void cmdAddCust_Click(object sender, EventArgs e)
+        {
+            frmAddEditCust frm = new frmAddEditCust();
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                //Load new values
+                LoadData();
+            }
+        }
+
+        private void cmdDeleteCust_Click(object sender, EventArgs e)
+        {
+            DialogResult myResult;
+            myResult = MessageBox.Show("Do you want to delete the item?", "Delete Confirmation", 
+                                            MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (myResult == DialogResult.OK)
+            {
+                string query = "DELETE FROM Customers WHERE ID = " + _custID;
+                try
+                {
+                    clsDB.setData(query);
+                    LoadData();
+
+                    MessageBox.Show("Customer deleted.", "Delete Customer", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void cmdAddNewCustContact_Click(object sender, EventArgs e)
+        {
+            frmAddEditCustContact frm = new frmAddEditCustContact(_custID);
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                //Load new values
+                LoadCustContactData(_custID);
+            }
+        }
+
+        private void cmdDeleteCustContact_Click(object sender, EventArgs e)
+        {
+            DialogResult myResult;
+            myResult = MessageBox.Show("Do you want to delete the item?", "Delete Confirmation",
+                                            MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (myResult == DialogResult.OK)
+            {
+                string query = "DELETE FROM CustContacts WHERE ID = " + _custContactID + " AND CustomerID = " + _custID;
+                try
+                {
+                    clsDB.setData(query);
+                    LoadCustContactData(_custID);
+
+                    MessageBox.Show("Customer Contact deleted.", "Delete Customer Contact", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void cmdExit_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void cboCustomer_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            cmdEditCustContact.Enabled = false;
+            cmdDeleteCustContact.Enabled = false;
+
+            if (cboCustomer.SelectedIndex > -1)
+            {
+                DataRowView row = (DataRowView)cboCustomer.SelectedItem;
+                if (row != null)
+                {
+                    cmdDeleteCust.Enabled = true;
+                    _custID = Convert.ToInt32(row[0]);
+
+                    txtLat.Text = Convert.ToDecimal(row[2]).ToString();
+                    txtLong.Text = Convert.ToDecimal(row[3]).ToString();
+                    LoadCustContactData(Convert.ToInt32(row[0]));
+                }
+
+                if (cboCustomer.SelectedIndex > 0)
+                {
+                    _selectedID = cboCustomer.SelectedIndex;
+                }
+            }
+            else
+            {
+                cmdDeleteCust.Enabled = false;
+                cmdEditCustContact.Enabled = false;
+                cmdDeleteCustContact.Enabled = false;
+                _selectedID = -1;
+            }
+        }
+
+        public void LoadCustContactData(int _id)
+        {
+            lstCustContacts.Items.Clear();
+
+            string query = "SELECT * FROM CustContacts WHERE CustomerID = " + _id + " ORDER BY Name";
+            try
+            {
+                // Display items in the ListView control
+                for (int i = 0; i < clsDB.getDataTable(query).Rows.Count; i++)
+                {
+                    DataRow drow = clsDB.getDataTable(query).Rows[i];
+                    // Define the list items
+                    ListViewItem lvi = new ListViewItem(drow["ID"].ToString());
+                    lvi.SubItems.Add(drow["Name"].ToString());
+                    lvi.SubItems.Add(drow["Email"].ToString());
+                    lvi.SubItems.Add(drow["ContactNr"].ToString());
+
+                    // Add the list items to the ListView
+                    lstCustContacts.Items.Add(lvi);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void lstCustContacts_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lstCustContacts.SelectedItems.Count == 0)
+            {
+                cmdEditCustContact.Enabled = false;
+                cmdDeleteCustContact.Enabled = false;
+                return;
+            }
+
+            ListViewItem item = lstCustContacts.SelectedItems[0];
+            _custContactID = Convert.ToInt32(item.SubItems[0].Text);
+
+            //fill the text boxes
+            txtCustContactEmail.Text = item.SubItems[2].Text;
+            txtCustContactNo.Text = item.SubItems[3].Text;
+
+            cmdEditCustContact.Enabled = true;
+            cmdDeleteCustContact.Enabled = true;
+        }
+
+        private void cmdEditCustContact_Click(object sender, EventArgs e)
+        {
+            string query = "UPDATE CustContacts SET Email='" + txtCustContactEmail.Text.Trim() + "', ContactNr=" +
+               txtCustContactNo.Text.Trim() + " WHERE ID = " + _custContactID;
+            try
+            {
+                clsDB.setData(query);
+                LoadCustContactData(_custID);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void cmdEditCust_Click(object sender, EventArgs e)
+        {
+            string Lat = "0.00";
+            string Long = "0.00";
+
+            if (!string.IsNullOrEmpty(txtLat.Text.Trim()))
+            {
+                Lat = txtLat.Text.Replace(",", ".").Trim();
+            }
+
+            if (!string.IsNullOrEmpty(txtLong.Text.Trim()))
+            {
+                Long = txtLong.Text.Replace(",", ".").Trim();
+            }
+
+            string query = "UPDATE Customers SET Latitude=" + Lat + ", Longitude=" + Long + " WHERE ID = " + _custID;
+            try
+            {
+                clsDB.setData(query);
+                LoadData();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+}
